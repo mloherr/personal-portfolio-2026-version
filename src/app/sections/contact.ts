@@ -1,8 +1,23 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
+import {
+  FormField,
+  FormRoot,
+  email,
+  form,
+  maxLength,
+  minLength,
+  required,
+  validate,
+} from '@angular/forms/signals';
+import type { FieldTree } from '@angular/forms/signals';
 import { PROFILE, liveUrl } from '../data/portfolio.data';
+
+const MAX_MENSAJE = 2000;
+const EMPTY = { nombre: '', email: '', mensaje: '', website: '' };
 
 @Component({
   selector: 'app-contact',
+  imports: [FormRoot, FormField],
   template: `
     <section id="contacto" class="sec container" aria-labelledby="contacto-title">
       <div class="wrap">
@@ -14,7 +29,13 @@ import { PROFILE, liveUrl } from '../data/portfolio.data';
           <ul class="links">
             @for (l of channels; track l.label) {
               <li>
-                <a class="btn" [attr.href]="live(l.url)" [attr.aria-disabled]="live(l.url) ? null : 'true'" [attr.rel]="l.ext ? 'noopener noreferrer' : null" [attr.target]="l.ext ? '_blank' : null">
+                <a
+                  class="btn"
+                  [attr.href]="live(l.url)"
+                  [attr.aria-disabled]="live(l.url) ? null : 'true'"
+                  [attr.rel]="l.ext ? 'noopener noreferrer' : null"
+                  [attr.target]="l.ext ? '_blank' : null"
+                >
                   {{ l.label }}
                 </a>
               </li>
@@ -22,24 +43,77 @@ import { PROFILE, liveUrl } from '../data/portfolio.data';
           </ul>
         </div>
 
-        <form class="well" (submit)="submit($event)">
+        <form class="well" [formRoot]="contactForm" aria-describedby="form-status">
           <div class="field">
             <label for="nombre">Nombre</label>
-            <input id="nombre" name="nombre" type="text" placeholder="Tu nombre" autocomplete="name" required />
+            <input
+              id="nombre"
+              type="text"
+              placeholder="Tu nombre"
+              autocomplete="name"
+              [formField]="contactForm.nombre"
+              [attr.aria-invalid]="error(contactForm.nombre) ? 'true' : null"
+              [attr.aria-describedby]="error(contactForm.nombre) ? 'nombre-error' : null"
+            />
+            @if (error(contactForm.nombre); as msg) {
+              <p class="error" id="nombre-error">{{ msg }}</p>
+            }
           </div>
+
           <div class="field">
             <label for="email">Email</label>
-            <input id="email" name="email" type="email" placeholder="tu@email.com" autocomplete="email" required />
+            <input
+              id="email"
+              type="email"
+              placeholder="tu@email.com"
+              autocomplete="email"
+              [formField]="contactForm.email"
+              [attr.aria-invalid]="error(contactForm.email) ? 'true' : null"
+              [attr.aria-describedby]="error(contactForm.email) ? 'email-error' : null"
+            />
+            @if (error(contactForm.email); as msg) {
+              <p class="error" id="email-error">{{ msg }}</p>
+            }
           </div>
+
           <div class="field">
             <label for="mensaje">Mensaje</label>
-            <textarea id="mensaje" name="mensaje" rows="5" placeholder="Cuéntame qué tienes en mente" required></textarea>
+            <textarea
+              id="mensaje"
+              rows="5"
+              placeholder="Cuéntame qué tienes en mente"
+              [formField]="contactForm.mensaje"
+              [attr.aria-invalid]="error(contactForm.mensaje) ? 'true' : null"
+              [attr.aria-describedby]="
+                error(contactForm.mensaje) ? 'mensaje-error mensaje-count' : 'mensaje-count'
+              "
+            ></textarea>
+            <div class="meta">
+              @if (error(contactForm.mensaje); as msg) {
+                <p class="error" id="mensaje-error">{{ msg }}</p>
+              }
+              <p class="count" id="mensaje-count">{{ mensajeLength() }} / {{ maxMensaje }}</p>
+            </div>
           </div>
-          <input class="trap" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />
-          <button class="btn btn-primary" type="submit" [attr.aria-busy]="sending() ? 'true' : null">Enviar mensaje</button>
-          <p class="status" role="status" aria-live="polite">{{ status() }}</p>
-        </form>
 
+          <input
+            class="trap"
+            type="text"
+            tabindex="-1"
+            autocomplete="off"
+            aria-hidden="true"
+            [formField]="contactForm.website"
+          />
+
+          <button
+            class="btn btn-primary"
+            type="submit"
+            [attr.aria-busy]="contactForm().submitting() ? 'true' : null"
+          >
+            Enviar mensaje
+          </button>
+          <p class="status" id="form-status" role="status" aria-live="polite">{{ status() }}</p>
+        </form>
       </div>
     </section>
   `,
@@ -114,6 +188,25 @@ import { PROFILE, liveUrl } from '../data/portfolio.data';
       outline-offset: 2px;
       border-color: var(--color-focus);
     }
+    input[aria-invalid='true'],
+    textarea[aria-invalid='true'] {
+      border-color: var(--color-accent);
+    }
+    .meta {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-md);
+    }
+    .error {
+      margin: 0;
+      font-size: var(--text-sm);
+      color: var(--color-accent);
+    }
+    .count {
+      margin: 0 0 0 auto;
+      font-size: var(--text-xs);
+      color: var(--color-muted);
+    }
     .trap {
       position: absolute;
       width: 1px;
@@ -147,42 +240,77 @@ import { PROFILE, liveUrl } from '../data/portfolio.data';
 export class ContactComponent {
   protected readonly p = PROFILE;
   protected readonly live = liveUrl;
+  protected readonly maxMensaje = MAX_MENSAJE;
   protected readonly status = signal('');
-  protected readonly sending = signal(false);
   protected readonly channels = [
     { label: 'Email', url: PROFILE.email, ext: false },
     { label: 'LinkedIn', url: PROFILE.linkedin, ext: true },
     { label: 'GitHub', url: PROFILE.github, ext: true },
   ];
 
-  protected async submit(event: Event): Promise<void> {
-    event.preventDefault();
-    if (this.sending()) return;
-    const form = event.target as HTMLFormElement;
-    if (!form.checkValidity()) {
-      form.reportValidity();
-      return;
-    }
-    this.sending.set(true);
-    this.status.set('Enviando…');
-    const data = Object.fromEntries(new FormData(form).entries());
-    try {
-      const res = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (res.ok) {
-        form.reset();
-        this.status.set('Mensaje enviado. Gracias, te respondo pronto.');
-      } else {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        this.status.set(body?.error ?? 'No se pudo enviar. Inténtalo de nuevo en un rato.');
-      }
-    } catch {
-      this.status.set('No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.');
-    } finally {
-      this.sending.set(false);
-    }
+  private readonly model = signal({ ...EMPTY });
+  protected readonly mensajeLength = computed(() => this.model().mensaje.length);
+
+  protected readonly contactForm = form(
+    this.model,
+    (path) => {
+      required(path.nombre, { message: 'Escribe tu nombre.' });
+      minLength(path.nombre, 2, { message: 'El nombre es demasiado corto.' });
+      maxLength(path.nombre, 100, { message: 'Máximo 100 caracteres.' });
+      validate(path.nombre, ({ value }) =>
+        value().length >= 2 && value().trim().length < 2
+          ? { kind: 'blank', message: 'El nombre no puede ser solo espacios.' }
+          : undefined,
+      );
+
+      required(path.email, { message: 'Escribe tu email.' });
+      email(path.email, { message: 'Ese email no parece válido (nombre@dominio.com).' });
+      maxLength(path.email, 200, { message: 'Máximo 200 caracteres.' });
+
+      required(path.mensaje, { message: 'Escribe tu mensaje.' });
+      minLength(path.mensaje, 10, { message: 'Cuéntame un poco más (mínimo 10 caracteres).' });
+      maxLength(path.mensaje, MAX_MENSAJE, { message: `Máximo ${MAX_MENSAJE} caracteres.` });
+      validate(path.mensaje, ({ value }) =>
+        value().length >= 10 && value().trim().length < 10
+          ? { kind: 'blank', message: 'El mensaje no puede ser solo espacios.' }
+          : undefined,
+      );
+    },
+    {
+      submission: {
+        action: async () => {
+          this.status.set('Enviando…');
+          try {
+            const res = await fetch('/api/contact', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(this.model()),
+            });
+            if (res.ok) {
+              this.model.set({ ...EMPTY });
+              this.contactForm().reset();
+              this.status.set('Mensaje enviado. Gracias, te respondo pronto.');
+            } else {
+              const body = (await res.json().catch(() => null)) as { error?: string } | null;
+              this.status.set(body?.error ?? 'No se pudo enviar. Inténtalo de nuevo en un rato.');
+            }
+          } catch {
+            this.status.set('No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.');
+          }
+          return undefined;
+        },
+        onInvalid: () => {
+          this.status.set('Revisa los campos marcados.');
+          this.contactForm().markAsTouched();
+          this.contactForm().errorSummary()[0]?.fieldTree().focusBoundControl();
+        },
+      },
+    },
+  );
+
+  /** Primer mensaje de error del campo, solo cuando ya se ha tocado. */
+  protected error(field: FieldTree<string>): string | null {
+    const state = field();
+    return state.touched() && state.invalid() ? (state.errors()[0]?.message ?? null) : null;
   }
 }

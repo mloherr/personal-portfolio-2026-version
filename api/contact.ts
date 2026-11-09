@@ -7,7 +7,8 @@
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const LIMITS = { nombre: 100, email: 200, mensaje: 5000 };
+const LIMITS = { nombre: 100, email: 200, mensaje: 2000 };
+const MIN = { nombre: 2, mensaje: 10 };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const escapeHtml = (s: string): string =>
@@ -32,7 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const n = nombre.trim();
   const e = email.trim();
   const m = mensaje.trim();
-  if (!n || !m || !EMAIL_RE.test(e)) {
+  if (n.length < MIN.nombre || m.length < MIN.mensaje || !EMAIL_RE.test(e)) {
     return res.status(400).json({ ok: false, error: 'Revisa el nombre, el email y el mensaje.' });
   }
   if (n.length > LIMITS.nombre || e.length > LIMITS.email || m.length > LIMITS.mensaje) {
