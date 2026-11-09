@@ -10,6 +10,11 @@ export function liveUrl(url: string): string | null {
   return /^(https?:|mailto:)/.test(url) && !url.includes('[') ? url : null;
 }
 
+/** True si el texto sigue siendo un dato pendiente (entre corchetes). */
+export function isPending(text: string): boolean {
+  return text.includes('[');
+}
+
 export interface Profile {
   name: string;
   /** Apellido usado en el prompt del hero. Pendiente de confirmar. */
@@ -43,7 +48,7 @@ export interface Lab {
   writeupUrl: string;
 }
 
-export type TimelineKind = 'TRABAJO' | 'FORMACIÓN' | 'CERTIFICACIÓN';
+export type TimelineKind = 'Trabajo' | 'Formación' | 'Certificación';
 
 export interface TimelineEntry {
   period: string;
@@ -55,13 +60,13 @@ export interface TimelineEntry {
 
 export const PROFILE: Profile = {
   name: 'María',
-  promptHost: 'maria@lopez', // [CONFIRMAR APELLIDO]
+  promptHost: 'maria@lopez',
   role: 'Desarrolladora full-stack',
   focus: '→ Application Security',
   intro:
-    'Dos años construyendo aplicaciones web. Ahora llevo esa experiencia hacia la seguridad de aplicaciones: desarrollo, auditorías de accesibilidad y pentesting web.',
+    'Dos años construyendo aplicaciones web, ahora hacia la seguridad de aplicaciones.',
   email: 'mailto:[TU EMAIL]',
-  github: 'https://github.com/[TU USUARIO]',
+  github: 'https://github.com/mloherr',
   linkedin: 'https://www.linkedin.com/in/[TU PERFIL]',
   year: 2026,
 };
@@ -106,22 +111,22 @@ export const LABS: Lab[] = Array.from({ length: 3 }, () => ({
 
 export const TIMELINE: TimelineEntry[] = [
   {
-    period: 'EN CURSO',
-    kind: 'FORMACIÓN',
+    period: 'En curso',
+    kind: 'Formación',
     title: 'Máster en ciberseguridad',
     detail: '[CENTRO]. Orientado a seguridad de aplicaciones y pentesting web.',
   },
   {
-    period: 'DIC 2025',
-    kind: 'CERTIFICACIÓN',
+    period: 'Dic 2025',
+    kind: 'Certificación',
     title: 'Angular Junior',
     detail: 'certificates.dev',
   },
   {
-    period: 'SEP 2024 → ACTUALIDAD',
-    kind: 'TRABAJO',
+    period: 'Sep 2024 – actualidad',
+    kind: 'Trabajo',
     title: 'Desarrolladora frontend junior',
-    detail: 'Viewnext · proyecto de telecomunicaciones para Orange · teletrabajo',
+    detail: 'Viewnext, proyecto de telecomunicaciones para Orange, teletrabajo',
     highlights: [
       'Desarrollo frontend con Angular.',
       'Auditorías de accesibilidad web.',
@@ -130,16 +135,16 @@ export const TIMELINE: TimelineEntry[] = [
   },
   {
     period: '2024',
-    kind: 'FORMACIÓN',
+    kind: 'Formación',
     title: 'Bootcamp full-stack',
     detail: 'Adalab',
   },
 ];
 
 export const NAV_LINKS = [
-  { href: '#proyectos', label: '/proyectos' },
-  { href: '#stack', label: '/stack' },
-  { href: '#labs', label: '/labs' },
-  { href: '#experiencia', label: '/experiencia' },
-  { href: '#contacto', label: '/contacto' },
+  { href: '#proyectos', label: 'proyectos' },
+  { href: '#stack', label: 'stack' },
+  { href: '#labs', label: 'labs' },
+  { href: '#experiencia', label: 'experiencia' },
+  { href: '#contacto', label: 'contacto' },
 ];

@@ -1,99 +1,137 @@
 import { Component } from '@angular/core';
-import { PROFILE, PROJECTS, liveUrl } from '../data/portfolio.data';
+import { PROFILE, PROJECTS, isPending, liveUrl } from '../data/portfolio.data';
 
 @Component({
   selector: 'app-projects',
   template: `
-    <section id="proyectos" class="section" aria-labelledby="proyectos-title">
-      <div class="section-head">
-        <h2 id="proyectos-title"><span class="idx">01 /</span>Proyectos</h2>
-        <a class="aside" [attr.href]="live(profile.github)" [attr.aria-disabled]="live(profile.github) ? null : 'true'"
-          >más en GitHub ↗</a
+    <section id="proyectos" class="sec container" aria-labelledby="proyectos-title">
+      <div class="sec-head">
+        <h2 id="proyectos-title">Proyectos</h2>
+        <a
+          class="aside"
+          [attr.href]="live(profile.github)"
+          [attr.aria-disabled]="live(profile.github) ? null : 'true'"
+          >más en GitHub</a
         >
       </div>
-      <ul class="grid">
+      <ol class="rows">
         @for (p of projects; track p.title; let i = $index) {
           <li>
             <a
-              class="card project"
+              class="row"
               [attr.href]="live(p.url)"
               [attr.target]="live(p.url) ? '_blank' : null"
               [attr.rel]="live(p.url) ? 'noopener noreferrer' : null"
               [attr.aria-disabled]="live(p.url) ? null : 'true'"
             >
-              <span class="top eyebrow" aria-hidden="true">
-                <span>PROJECT {{ '0' + (i + 1) }}</span><span>↗</span>
-              </span>
+              <span class="num" aria-hidden="true">{{ '0' + (i + 1) }}</span>
               <h3>{{ p.title }}</h3>
-              <p class="desc">{{ p.description }}</p>
-              <ul class="pills" aria-label="Tecnologías">
-                @for (t of p.tags; track t) {
-                  <li class="pill">{{ t }}</li>
-                }
-              </ul>
-              <span class="open">
-                → abrir proyecto<span class="visually-hidden">
-                  {{ p.title }} (se abre en otra pestaña)</span
-                >
-                @if (!live(p.url)) {
-                  <span class="pending"> {{ p.url }}</span>
-                }
-              </span>
+              <div class="body">
+                <p class="desc">{{ p.description }}</p>
+                <ul class="args" aria-label="Tecnologías">
+                  @for (t of p.tags; track t) {
+                    <li [class.fill]="pending(t)">{{ pending(t) ? t : '--' + slug(t) }}</li>
+                  }
+                </ul>
+                <span class="open">
+                  Abrir proyecto<span class="visually-hidden">
+                    {{ p.title }} (se abre en otra pestaña)</span
+                  >
+                  @if (!live(p.url)) {
+                    <span class="fill">{{ p.url }}</span>
+                  }
+                </span>
+              </div>
             </a>
           </li>
         }
-      </ul>
+      </ol>
     </section>
   `,
   styles: `
-    .aside {
-      font-family: var(--font-mono);
-      font-size: 13px;
-      padding: 8px 0;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
-      gap: 24px;
+    .rows {
       margin: 0;
       padding: 0;
       list-style: none;
+      border-top: var(--rule-hair) solid var(--color-rule-2);
     }
-    .project {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      color: var(--text);
-      transition: border-color 0.15s;
+    .rows li {
+      border-bottom: var(--rule-hair) solid var(--color-rule);
     }
-    .project:hover {
-      border-color: rgba(167, 139, 250, 0.6);
-      color: var(--text);
+    .row {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      column-gap: var(--gap-columns);
+      align-items: start;
+      padding: var(--space-xl) var(--space-sm);
+      color: var(--color-ink);
+      text-decoration: none;
+      transition: background-color var(--dur-micro) steps(1);
     }
-    .top {
-      display: flex;
-      justify-content: space-between;
+    .row:hover {
+      background: var(--color-paper-2);
+      color: var(--color-ink);
+    }
+    .row:hover h3 {
+      color: var(--color-accent);
+    }
+    .num {
+      grid-column: 1 / span 1;
+      color: var(--color-muted);
+      font-size: var(--text-sm);
+      padding-top: var(--space-xs);
     }
     h3 {
-      margin: 0;
-      font-size: 24px;
-      font-weight: 600;
+      grid-column: 2 / span 5;
+      font-size: var(--text-xl);
+      line-height: 1.2;
+      max-width: none;
+    }
+    .body {
+      grid-column: 8 / -1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+      min-width: 0;
     }
     .desc {
+      color: var(--color-ink-2);
+      font-size: var(--text-md);
+    }
+    .args {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2xs) var(--space-md);
       margin: 0;
-      flex: 1;
-      font-size: 15px;
-      line-height: 1.6;
-      color: var(--text-2);
+      padding: 0;
+      list-style: none;
+      font-size: var(--text-sm);
+      color: var(--color-accent);
+    }
+    .args .fill {
+      color: var(--color-muted);
     }
     .open {
-      font-family: var(--font-mono);
-      font-size: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-sm);
+      font-size: var(--text-sm);
+      text-decoration: underline dotted;
     }
-    .pending {
-      color: var(--accent);
-      font-size: 12px;
+    .open .fill {
+      font-size: var(--text-xs);
+      text-decoration: none;
+    }
+    @media (max-width: 60rem) {
+      .num,
+      h3,
+      .body {
+        grid-column: 1 / -1;
+      }
+      h3 {
+        margin-block: var(--space-xs) var(--space-md);
+      }
     }
   `,
 })
@@ -101,4 +139,8 @@ export class ProjectsComponent {
   protected readonly projects = PROJECTS;
   protected readonly profile = PROFILE;
   protected readonly live = liveUrl;
+  protected readonly pending = isPending;
+  protected slug(tag: string): string {
+    return tag.toLowerCase().replace(/\s+/g, '-');
+  }
 }
